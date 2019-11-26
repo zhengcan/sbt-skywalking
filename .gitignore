@@ -1,0 +1,10 @@
+# Idea
+.idea
+*.iml
+
+# Sbt
+project/project
+project/target
+target
+
+
