@@ -2,6 +2,7 @@ package org.apache.skywalking.sbt
 
 import java.io.{FilenameFilter, IOException, InputStream}
 import java.net.URL
+import java.util.concurrent.locks.ReentrantLock
 import java.util.zip.ZipInputStream
 
 import com.lightbend.sbt.javaagent.JavaAgent.JavaAgentKeys.resolvedJavaAgents
@@ -147,12 +148,26 @@ object SkyWalkingAgent extends AutoPlugin {
   def skyWalkingDownloadTask: Def.Initialize[Task[Seq[File]]] = Def.task {
     val dir = skyWalkingDirectory.value
     if (!dir.exists() || dir.length() == 0) {
-      // Download
-      val link = s"${skyWalkingMirror.value}/skywalking/${skyWalkingVersion.value}/apache-skywalking-apm-${skyWalkingVersion.value}.zip"
-      print(s"Download and unzip SkyWalking from $link to $dir...")
-      unzipURL(new URL(link), dir)
+      SkyWalkingDownloader.download(skyWalkingMirror.value, skyWalkingVersion.value, dir)
     }
     Nil
+  }
+}
+
+object SkyWalkingDownloader {
+  val lock = new ReentrantLock()
+
+  def download(mirror: String, version: String, dest: File): Unit = {
+    lock.lock()
+    try {
+      if (!dest.exists() || dest.length() == 0) {
+        val link = s"${mirror}/skywalking/${version}/apache-skywalking-apm-${version}.zip"
+        println(s"Download and unzip SkyWalking from $link to $dest...")
+        unzipURL(new URL(link), dest)
+      }
+    } finally {
+      lock.unlock()
+    }
   }
 
   private def unzipURL(
