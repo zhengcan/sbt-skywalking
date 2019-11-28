@@ -1,4 +1,3 @@
-
 lazy val `skywalking-plugin` = (project in file("."))
   .enablePlugins(SbtPlugin)
   .settings(

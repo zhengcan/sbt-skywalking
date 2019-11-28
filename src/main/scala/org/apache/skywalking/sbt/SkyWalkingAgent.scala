@@ -31,6 +31,7 @@ object SkyWalkingKeys {
   val skyWalkingDirectory = settingKey[File](s"The directory of SkyWalking. (default ../tools/skywalking_${Defaults.VERSION})")
   val skyWalkingMirror = settingKey[String](s"The mirror of apache download site. (default ${Defaults.MIRROR})")
   val skyWalkingPlugins = settingKey[Seq[ModuleID]]("The custom skyWalking plugins")
+  val skyWalkingPluginProjects = settingKey[Seq[ProjectReference]]("The custom skyWalking plugin projects")
   val skyWalkingResolvedPlugins = taskKey[Seq[ResolvedPlugin]]("The resolved custom skyWalking plugins")
   val skyWalkingDownload = taskKey[Seq[File]]("Download SkyWalking distribution if required.")
 }
@@ -49,12 +50,16 @@ object SkyWalkingAgent extends AutoPlugin {
     skyWalkingDirectory := baseDirectory.value / s"../tools/skywalking-${Defaults.VERSION}",
     skyWalkingMirror := Defaults.MIRROR,
     skyWalkingPlugins := Seq.empty,
-
-    libraryDependencies ++= skyWalkingPlugins.value
-      .map(plugin => plugin.withConfigurations(configurations = Option(Provided.name))),
+    skyWalkingPluginProjects := Seq.empty,
     skyWalkingResolvedPlugins := resolvePlugins.value,
     skyWalkingDownload := skyWalkingDownloadTask.value,
 
+    libraryDependencies ++= Seq() ++
+      // Plugins
+      skyWalkingPlugins.value
+        .map(plugin => plugin.withConfigurations(configurations = Option(Provided.name)))
+      // Plugin Projects
+      ++ Seq(),
     resolvedJavaAgents ++= resolveJavaAgents.value,
     mappings in Universal ++= mappingJavaAgents.value,
   ) ++ inConfig(Universal)(Seq(
