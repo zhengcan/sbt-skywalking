@@ -47,6 +47,18 @@ object SkyWalkingAgent extends AutoPlugin {
 
   import SkyWalkingKeys._
 
+  val pluginSettings: Seq[Def.Setting[_]] = Seq(
+    libraryDependencies ++= Seq(
+      "org.apache.skywalking" % "apm-agent-core" % skyWalkingVersion.value % Provided,
+      "org.apache.skywalking" % "apm-util" % skyWalkingVersion.value % Provided,
+      "org.apache.skywalking" % "apm-test-tools" % skyWalkingVersion.value % Test,
+      "junit" % "junit" % "4.12" % Test,
+      "org.mockito" % "mockito-all" % "1.10.19" % Test,
+      "org.powermock" % "powermock-module-junit4" % "1.6.4" % Test,
+      "org.powermock" % "powermock-api-mockito" % "1.6.4" % Test,
+    )
+  )
+
   override def projectSettings: Seq[Def.Setting[_]] = Seq(
     skyWalkingVersion := SkyWalkingDefaults.VERSION,
     skyWalkingDirectory := baseDirectory.value / s"../tools/skywalking-${SkyWalkingDefaults.VERSION}",
