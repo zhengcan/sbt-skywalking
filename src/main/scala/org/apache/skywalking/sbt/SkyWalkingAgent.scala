@@ -15,6 +15,7 @@ import sbt.io.IO.{createDirectory, setModifiedTimeOrFalse, transfer}
 import sbt.io.Using.{fileOutputStream, urlInputStream, zipInputStream}
 import sbt.io.{AllPassFilter, NameFilter}
 import sbt.{Compile, File, task, taskKey, _}
+import sbtassembly.AssemblyPlugin
 
 import scala.annotation.tailrec
 import scala.collection.mutable
@@ -41,17 +42,18 @@ object SkyWalkingKeys {
 case class ResolvedPlugin(plugin: ModuleID, artifact: File)
 
 object SkyWalkingAgent extends AutoPlugin {
-  override def requires = JavaAgent && UniversalPlugin
+  override def requires = JavaAgent && UniversalPlugin && AssemblyPlugin
 
   val autoImport: SkyWalkingKeys.type = SkyWalkingKeys
 
   import SkyWalkingKeys._
 
-  val pluginSettings: Seq[Def.Setting[_]] = Seq(
+  val agentPlugin: Seq[Def.Setting[_]] = Seq(
     autoScalaLibrary := false,
     crossPaths := false,
     sources in(Compile, doc) := Seq.empty,
     publishArtifact in(Compile, packageDoc) := false,
+    //    addSbtPlugin("com.eed3si9n" % "sbt-assembly" % "0.14.10"),
     libraryDependencies ++= Seq(
       "org.apache.skywalking" % "apm-agent-core" % skyWalkingVersion.value % Provided,
       "org.apache.skywalking" % "apm-util" % skyWalkingVersion.value % Provided,
@@ -60,7 +62,7 @@ object SkyWalkingAgent extends AutoPlugin {
       "org.mockito" % "mockito-all" % "1.10.19" % Test,
       "org.powermock" % "powermock-module-junit4" % "1.6.4" % Test,
       "org.powermock" % "powermock-api-mockito" % "1.6.4" % Test,
-    )
+    ),
   )
 
   override def projectSettings: Seq[Def.Setting[_]] = Seq(
@@ -180,10 +182,10 @@ object SkyWalkingAgent extends AutoPlugin {
 
   private def extractPlugins(stateTask: Task[State], ref: ProjectRef): Task[Seq[ResolvedPlugin]] =
     stateTask.flatMap { state =>
-      val extracted = Project.extract(state)
+      val extracted: Extracted = Project.extract(state)
       // TODO - Is this correct?
-      val module = extracted.get(projectID in ref)
-      val artifactTask = extracted.get(packagedArtifacts in ref)
+      val module: ModuleID = extracted.get(projectID in ref)
+      val artifactTask: Task[Map[Artifact, File]] = extracted.get(packagedArtifacts in ref)
       for {
         arts <- artifactTask
       } yield {
@@ -192,6 +194,7 @@ object SkyWalkingAgent extends AutoPlugin {
         } yield {
           if (art.`type` == "jar" && file.getName.endsWith(".jar") && (!file.getName.endsWith("-source.jar") || !file.getName.endsWith("-javadoc.jar")))
             ResolvedPlugin(module, file)
+//            ResolvedPlugin(module, file.getParentFile / extracted.get(sbtassembly.AssemblyKeys.assemblyJarName in ref).value)
           else
             null
         }
