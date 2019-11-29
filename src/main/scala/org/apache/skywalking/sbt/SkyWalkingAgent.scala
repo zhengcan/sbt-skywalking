@@ -14,7 +14,7 @@ import sbt.Keys.{buildStructure, _}
 import sbt.io.IO.{createDirectory, setModifiedTimeOrFalse, transfer}
 import sbt.io.Using.{fileOutputStream, urlInputStream, zipInputStream}
 import sbt.io.{AllPassFilter, NameFilter}
-import sbt.{File, task, taskKey, _}
+import sbt.{Compile, File, task, taskKey, _}
 
 import scala.annotation.tailrec
 import scala.collection.mutable
@@ -48,6 +48,10 @@ object SkyWalkingAgent extends AutoPlugin {
   import SkyWalkingKeys._
 
   val pluginSettings: Seq[Def.Setting[_]] = Seq(
+    autoScalaLibrary := false,
+    crossPaths := false,
+    sources in(Compile, doc) := Seq.empty,
+    publishArtifact in(Compile, packageDoc) := false,
     libraryDependencies ++= Seq(
       "org.apache.skywalking" % "apm-agent-core" % skyWalkingVersion.value % Provided,
       "org.apache.skywalking" % "apm-util" % skyWalkingVersion.value % Provided,
