@@ -1,11 +1,11 @@
 # sbt-skywalking
 
-This sbt plugin adds [SkyWalking](https://skywalking.apache.org/) to projects.
-
-## Dependencies
-
-This plugin depends on `sbt-javaagent` and `sbt-native-packager` plugins.
-
+This project includes two kinds of sbt plugins:
+- SkyWalkingService
+    - adds [SkyWalking](https://skywalking.apache.org/) to projects.
+- SkyWalkingAgent
+    - develops a new SkyWalking agent project
+    
 ## Install
 
 Add this plugin to your `project/plugins.sbt`:
@@ -14,13 +14,15 @@ resolvers += Resolver.bintrayIvyRepo("can", "sbt-plugins")
 addSbtPlugin("org.apache.skywalking" % "sbt-skywalking" % versionNumber)
 ```
 
-Enable this plugins in `build.sbt`:
+This plugin depends on `sbt-javaagent`, `sbt-native-packager` and `sbt-assembly` plugins.
+
+## Add SkyWalking agent
+
+Enable `SkyWalkingServcie` plugin in `build.sbt`:
 ```scala
 lazy val myProject = (project in file("."))
-  .enablePlugins(SkyWalkingAgent)
+  .enablePlugins(SkyWalkingServcie)
 ```
-
-## Usage
 
 ### Project Settings
 
@@ -36,9 +38,7 @@ This plugin add the following settings to project:
 - `skyWalkingPluginProjects`:
     - which local projects will be added to `agent/plugins` folder as a SkyWalking plugin
 
-### SkyWalking plugins
-
-As default, the `agent/plugins` and `agent/optional-plugins` will be added.
+### Add external SkyWalking agent
 
 Developer could add extra plugin as below:
 ```scala
@@ -50,6 +50,8 @@ lazy val myProject = (project in file("."))
     )
   )
 ```
+
+### Add local SkyWalking agent
 
 If subproject should be added as a SkyWalking plugin, the build.sbt could be modified as below:
 ```scala
@@ -64,6 +66,12 @@ lazy val myProject = (project in file("."))
   )
 ```
 
+### Stage / Dist
+
+This plugin enhances `stage`, `dist` and `packageZipTarball` to install SkyWalking as java agent.
+
+As default, the `agent/plugins` and `agent/optional-plugins` will be added.
+
 ### agent.conf
 
 Projects should create a new file named `agent.conf` in `conf/skywalking`.
@@ -71,9 +79,20 @@ The `agent.conf` could be copied from SkyWalking distribution.
 
 In fact, all files in `conf/skywalking` will be copied to `agent/config` folder in generated package.
 
-### Stage / Dist
+## Develop SkyWalking agent
 
-This plugin enhances `stage`, `dist` and `packageZipTarball` to install SkyWalking as java agent.
+Enable `SkyWalkingAgent` plugin in `build.sbt`:
+```scala
+lazy val myAgent = (project in file("./agent"))
+  .enablePlugins(SkyWalkingAgent)
+```
+
+### Project Settings
+
+This plugin add the following settings to project:
+- `skyWalkingVersion`:
+    - which SkyWalking will be used (default: `6.5.0`)
+
 
 
 
