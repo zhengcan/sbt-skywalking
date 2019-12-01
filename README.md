@@ -1,9 +1,5 @@
 # sbt-skywalking
 
-> author: Zheng Can (zc3593835@gmail.com)
-
-
-
 [SkyWalking](http://skywalking.apache.org/) is an **A**pplication **P**erformance **M**onitor tool for distributed systems, especially designed for microservices, cloud native and container-based (Docker, K8s, Mesos) architectures.
 
 The `sbt-skywalking` adds powerful features to easily use SkyWalking in sbt related project.
