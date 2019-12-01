@@ -4,14 +4,13 @@ import sbt.Keys._
 import sbt.{Compile, _}
 import sbtassembly.AssemblyKeys._
 import sbtassembly.AssemblyPlugin
-import sbtassembly.AssemblyPlugin.autoImport.{MergeStrategy, assemblyMergeStrategy}
+import sbtassembly.AssemblyPlugin.autoImport.{MergeStrategy, ShadeRule, assemblyMergeStrategy, assemblyShadeRules}
 
 object SkyWalkingAgentKeys extends SkyWalkingKeys {
-
 }
 
 object SkyWalkingAgent extends AutoPlugin {
-  override def requires = AssemblyPlugin
+  override def requires: Plugins = AssemblyPlugin
 
   val autoImport: SkyWalkingAgentKeys.type = SkyWalkingAgentKeys
 
@@ -33,6 +32,9 @@ object SkyWalkingAgent extends AutoPlugin {
       "org.mockito" % "mockito-all" % "1.10.19" % Test,
       "org.powermock" % "powermock-module-junit4" % "1.6.4" % Test,
       "org.powermock" % "powermock-api-mockito" % "1.6.4" % Test,
+    ),
+    assemblyShadeRules in assembly := Seq(
+      ShadeRule.rename("net.bytebuddy.**" -> "org.apache.skywalking.apm.dependencies.@0").inAll
     ),
     assemblyMergeStrategy in assembly := {
       case "module-info.class" => MergeStrategy.discard

@@ -14,7 +14,7 @@ import sbt.Keys.{buildStructure, _}
 import sbt.io.IO.{createDirectory, setModifiedTimeOrFalse, transfer}
 import sbt.io.Using.{fileOutputStream, urlInputStream, zipInputStream}
 import sbt.io.{AllPassFilter, NameFilter}
-import sbt.{File, ModuleID, settingKey, task, taskKey, _}
+import sbt.{Def, File, ModuleID, settingKey, task, taskKey, _}
 import sbtassembly.AssemblyKeys._
 
 import scala.annotation.tailrec
@@ -23,19 +23,27 @@ import scala.collection.mutable
 case class ResolvedPlugin(plugin: ModuleID, artifact: File)
 
 object SkyWalkingServiceKeys extends SkyWalkingKeys {
-  val skyWalkingDirectory = settingKey[File](s"The directory of SkyWalking. (default ../tools/skywalking_${SkyWalkingDefaults.VERSION})")
+  val skyWalkingDirectory = settingKey[File](s"The directory of SkyWalking.")
   val skyWalkingMirror = settingKey[String](s"The mirror of apache download site. (default ${SkyWalkingDefaults.MIRROR})")
+  val skyWalkingEnableDefaultActivations = settingKey[Boolean]("Enable default activations. (default: true)")
+  val skyWalkingEnableDefaultPlugins = settingKey[Boolean]("Enable default plugins. (default: true)")
+  val skyWalkingEnableOptionalPlugins = settingKey[Boolean]("Enable optional plugins. (default: false)")
+  val skyWalkingEnableBootstrapPlugins = settingKey[Boolean]("Enable bootstrap plugins. (default: false)")
+  val skyWalkingActivations = settingKey[Seq[ModuleID]]("The custom skyWalking activations")
   val skyWalkingPlugins = settingKey[Seq[ModuleID]]("The custom skyWalking plugins")
   val skyWalkingPluginProjects = settingKey[Seq[ProjectReference]]("The custom skyWalking plugin projects")
+  val skyWalkingConfigDirectory = settingKey[File]("The agent config directory")
 
+  val skyWalkingDefaultDirectory = taskKey[File](s"The default directory of SkyWalking. (default RootProject/tools/skywalking-${SkyWalkingDefaults.VERSION})")
+  val skyWalkingResolvedActivations = taskKey[Seq[ResolvedPlugin]]("The resolved custom skyWalking activations")
   val skyWalkingResolvedPlugins = taskKey[Seq[ResolvedPlugin]]("The resolved custom skyWalking plugins")
   val skyWalkingAssemblyPluginProjects = taskKey[Unit]("Assembly custom skyWalking plugin projects")
   val skyWalkingResolvedPluginProjects = taskKey[Seq[ResolvedPlugin]]("The resolved custom skyWalking plugin projects")
-  val skyWalkingDownload = taskKey[Seq[File]]("Download SkyWalking distribution if required.")
+  val skyWalkingDownloadDistribution = taskKey[Seq[File]]("Download SkyWalking distribution if required.")
 }
 
 object SkyWalkingService extends AutoPlugin {
-  override def requires = JavaAgent && UniversalPlugin
+  override def requires: Plugins = JavaAgent && UniversalPlugin
 
   val autoImport: SkyWalkingServiceKeys.type = SkyWalkingServiceKeys
 
@@ -43,14 +51,23 @@ object SkyWalkingService extends AutoPlugin {
 
   override def projectSettings: Seq[Def.Setting[_]] = Seq(
     skyWalkingVersion := SkyWalkingDefaults.VERSION,
-    skyWalkingDirectory := baseDirectory.value / s"../tools/skywalking-${SkyWalkingDefaults.VERSION}",
+    skyWalkingDirectory := new File("$DEFAULT"),
     skyWalkingMirror := SkyWalkingDefaults.MIRROR,
+    skyWalkingEnableDefaultActivations := true,
+    skyWalkingEnableDefaultPlugins := true,
+    skyWalkingEnableOptionalPlugins := false,
+    skyWalkingEnableBootstrapPlugins := false,
+    skyWalkingActivations := Seq.empty,
     skyWalkingPlugins := Seq.empty,
     skyWalkingPluginProjects := Seq.empty,
+    skyWalkingConfigDirectory := baseDirectory.value / "conf/skywalking",
+
+    skyWalkingDefaultDirectory := findDefaultDirectory.value,
+    skyWalkingResolvedActivations := resolveActivations.value,
     skyWalkingResolvedPlugins := resolvePlugins.value,
     skyWalkingAssemblyPluginProjects := assemblyPluginProjects.value,
     skyWalkingResolvedPluginProjects := resolvePluginProjects.value,
-    skyWalkingDownload := skyWalkingDownloadTask.value,
+    skyWalkingDownloadDistribution := skyWalkingDownloadTask.value,
 
     libraryDependencies ++= Seq() ++
       // Plugins
@@ -58,11 +75,19 @@ object SkyWalkingService extends AutoPlugin {
         .map(plugin => plugin.withConfigurations(configurations = Option(Provided.name))),
     resolvedJavaAgents ++= resolveJavaAgents.value,
     mappings in Universal ++= mappingJavaAgents.value,
+    compile in Compile := (compile in Compile dependsOn ensureCompile).value,
+    test in Test := (test in Test dependsOn ensureTest).value,
+    clean := (clean dependsOn ensureClean).value,
   ) ++ inConfig(Universal)(Seq(
     stage := (stage dependsOn ensureStage).value,
     dist := (dist dependsOn ensureStage).value,
     packageZipTarball := (packageZipTarball dependsOn ensureStage).value,
   ))
+
+  def findDefaultDirectory: Def.Initialize[Task[File]] = Def.task {
+    val structure = buildStructure.value
+    IO.asFile(structure.root.toURL) / s"tools/skywalking-${SkyWalkingDefaults.VERSION}"
+  }
 
   def assemblyPluginProjects: Def.Initialize[Task[Unit]] = Def.taskDyn {
     var all = Def.task {}
@@ -76,9 +101,9 @@ object SkyWalkingService extends AutoPlugin {
   }
 
   def ensureStage: Def.Initialize[Task[Unit]] = Def.taskDyn[Unit] {
-    if (enabled.value) {
+    if (hasConfig.value) {
       Def.task {
-        skyWalkingDownload.value
+        skyWalkingDownloadDistribution.value
         assemblyPluginProjects.value
       }
     }
@@ -87,53 +112,116 @@ object SkyWalkingService extends AutoPlugin {
     }
   }
 
-  private def configDir: Def.Initialize[Task[File]] = Def.task[File] {
-    baseDirectory.value / "./conf/skywalking"
-  }
-
-  private def enabled: Def.Initialize[Task[Boolean]] = Def.task[Boolean] {
-    configDir.value.exists() && configDir.value.length() > 0
-  }
-
-  def resolveJavaAgents: Def.Initialize[Task[Seq[ResolvedAgent]]] = Def.task[Seq[ResolvedAgent]] {
-    if (!enabled.value) {
-      println("Skip adding SkyWalking as javaAgent due to no SkyWalking config")
-      Seq.empty
-    } else {
-      Seq(
-        ResolvedAgent(
-          JavaAgent(SkyWalkingDefaults.GROUP_ID % SkyWalkingDefaults.ARTIFACT_ID % SkyWalkingDefaults.VERSION),
-          skyWalkingDirectory.value / "agent/skywalking-agent.jar"
-        )
-      )
+  def ensureClean: Def.Initialize[Task[Unit]] = Def.taskDyn[Unit] {
+    var all = Def.task {}
+    val structure = buildStructure.value
+    skyWalkingPluginProjects.value foreach { ref =>
+      structure.allProjectRefs
+        .find(p => p.project == ref.asInstanceOf[LocalProject].project)
+        .foreach(p => all = all dependsOn (clean in p))
     }
+    all
   }
 
-  def mappingJavaAgents: Def.Initialize[Task[Seq[(File, String)]]] = Def.taskDyn[Seq[(File, String)]] {
-    if (!enabled.value) {
+  def ensureTest: Def.Initialize[Task[Unit]] = Def.taskDyn[Unit] {
+    var all = Def.task {}
+    val structure = buildStructure.value
+    skyWalkingPluginProjects.value foreach { ref =>
+      structure.allProjectRefs
+        .find(p => p.project == ref.asInstanceOf[LocalProject].project)
+        .foreach(p => all = all dependsOn (test in p in Test))
+    }
+    all
+  }
+
+  def ensureCompile: Def.Initialize[Task[Unit]] = Def.taskDyn[Unit] {
+    var all = Def.task {}
+    val structure = buildStructure.value
+    skyWalkingPluginProjects.value foreach { ref =>
+      structure.allProjectRefs
+        .find(p => p.project == ref.asInstanceOf[LocalProject].project)
+        .foreach(p => all = all dependsOn (compile in p in Compile))
+    }
+    all
+  }
+
+  private def hasConfig: Def.Initialize[Task[Boolean]] = Def.task[Boolean] {
+    skyWalkingConfigDirectory.value.exists() && skyWalkingConfigDirectory.value.length() > 0
+  }
+
+  def resolveJavaAgents: Def.Initialize[Task[Seq[ResolvedAgent]]] = Def.taskDyn[Seq[ResolvedAgent]] {
+    if (!hasConfig.value) {
+      println("Skip adding SkyWalking as javaAgent due to no SkyWalking config")
       Def.task {
         Seq.empty
       }
     } else {
+      val dir = resolveDirectory.value
+      Def.task {
+        Seq(
+          ResolvedAgent(
+            JavaAgent(SkyWalkingDefaults.GROUP_ID % SkyWalkingDefaults.ARTIFACT_ID % SkyWalkingDefaults.VERSION),
+            dir / "agent/skywalking-agent.jar"
+          )
+        )
+      }
+    }
+  }
+
+  def resolveDirectory: Def.Initialize[Task[File]] = Def.taskDyn {
+    val dir = skyWalkingDirectory.value
+    if (dir.name == "$DEFAULT") {
+      Def.task {
+        skyWalkingDefaultDirectory.value
+      }
+    } else {
+      Def.task {
+        dir
+      }
+    }
+  }
+
+  def mappingJavaAgents: Def.Initialize[Task[Seq[(File, String)]]] = Def.taskDyn[Seq[(File, String)]] {
+    if (!hasConfig.value) {
+      Def.task {
+        Seq.empty
+      }
+    } else {
+      val dir = resolveDirectory.value
       Def.task {
         // config
-        configDir.value.listFiles()
+        skyWalkingConfigDirectory.value.listFiles()
+          .filter(file => file.isFile)
           .map(file => Tuple2(file, s"${SkyWalkingDefaults.ARTIFACT_ID}/config/" + file.name)) ++
           // default activations
-          agentJarFiles(skyWalkingDirectory.value, "activations", "activations") ++
+          agentJarFiles(dir, "activations", "activations", skyWalkingEnableDefaultActivations.value) ++
+          // custom activations
+          resolveActivations.value
+            .filter(plugin => plugin != null)
+            .map(plugin => Tuple2(plugin.artifact, s"${SkyWalkingDefaults.ARTIFACT_ID}/activations/" + plugin.artifact.name)) ++
           // default plugins
-          agentJarFiles(skyWalkingDirectory.value, "plugins", "plugins") ++
+          agentJarFiles(dir, "plugins", "plugins", skyWalkingEnableDefaultPlugins.value) ++
           // optional plugins
-          agentJarFiles(skyWalkingDirectory.value, "optional-plugins", "plugins") ++
+          agentJarFiles(dir, "optional-plugins", "plugins", skyWalkingEnableOptionalPlugins.value) ++
+          // bootstrap plugins
+          agentJarFiles(dir, "bootstrap-plugins", "plugins", skyWalkingEnableBootstrapPlugins.value) ++
           // custom plugins
-          resolvePlugins.value
+          (resolvePlugins.value ++ resolvePluginProjects.value)
             .filter(plugin => plugin != null)
             .map(plugin => Tuple2(plugin.artifact, s"${SkyWalkingDefaults.ARTIFACT_ID}/plugins/" + plugin.artifact.name)) ++
           // custom plugin projects
-          resolvePluginProjects.value
-            .filter(plugin => plugin != null)
-            .map(plugin => Tuple2(plugin.artifact, s"${SkyWalkingDefaults.ARTIFACT_ID}/plugins/" + plugin.artifact.name)) ++
+//          resolvePluginProjects.value
+//            .filter(plugin => plugin != null)
+//            .map(plugin => Tuple2(plugin.artifact, s"${SkyWalkingDefaults.ARTIFACT_ID}/plugins/" + plugin.artifact.name)) ++
           Seq()
+      }
+    }
+  }
+
+  def resolveActivations: Def.Initialize[Task[Seq[ResolvedPlugin]]] = Def.task[Seq[ResolvedPlugin]] {
+    skyWalkingActivations.value flatMap { plugin =>
+      (update in Provided).value.matching(Modules.exactFilter(plugin)).headOption map {
+        jar => ResolvedPlugin(plugin, jar)
       }
     }
   }
@@ -187,9 +275,9 @@ object SkyWalkingService extends AutoPlugin {
     }
   }
 
-  private def agentJarFiles(base: File, source: String, dest: String): Seq[(File, String)] = {
+  private def agentJarFiles(base: File, source: String, dest: String, enabled: Boolean): Seq[(File, String)] = {
     val dir = base / "agent" / source
-    if (dir.exists() && dir.isDirectory) {
+    if (enabled && dir.exists() && dir.isDirectory) {
       dir.listFiles(jarFileFilter)
         .map(file => Tuple2(file, s"${SkyWalkingDefaults.ARTIFACT_ID}/$dest/" + file.name))
     } else {
@@ -198,7 +286,7 @@ object SkyWalkingService extends AutoPlugin {
   }
 
   def skyWalkingDownloadTask: Def.Initialize[Task[Seq[File]]] = Def.task {
-    val dir = skyWalkingDirectory.value
+    val dir = resolveDirectory.value
     if (!dir.exists() || dir.length() == 0) {
       SkyWalkingDownloader.download(skyWalkingMirror.value, skyWalkingVersion.value, dir)
     }
@@ -213,7 +301,7 @@ object SkyWalkingDownloader {
     lock.lock()
     try {
       if (!dest.exists() || dest.length() == 0) {
-        val link = s"${mirror}/skywalking/${version}/apache-skywalking-apm-${version}.zip"
+        val link = s"$mirror/skywalking/$version/apache-skywalking-apm-$version.zip"
         println(s"Download and unzip SkyWalking from $link to $dest...")
         unzipURL(new URL(link), dest)
       }
