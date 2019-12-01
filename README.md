@@ -72,12 +72,6 @@ This plugin add the following settings to project:
 - `skyWalkingVersion` : `String`
   - which SkyWalking will be used
   - default: `6.5.0`
-- `skyWalkingDirectory` : `File`
-  - where SkyWalking will be saved
-  - default: `[RootProject]/tools/skywalking-${skyWalkingVersion}`
-- `skyWalkingMirror` : `String`
-  - which mirror of Apache download site will be used to download SkyWalking
-  - default: `https://mirrors.cloud.tencent.com/apache/`
 - `skyWalkingEnableDefaultActivations` : `Boolean`
   - whether copy `activations/*.jar` from distribution to `agent/activations` folder
   - default: `true`
@@ -102,12 +96,21 @@ This plugin add the following settings to project:
 - `skyWalkingConfigDirectory` : `File`
   - where the `agent.conf` are stored
   - default: `[Project]/conf/skywalking`
+- `skyWalkingDownload` : `Boolean`
+  - whether download SkyWalking distribution if required
+  - default: `true`
+- `skyWalkingDownloadMirror` : `String`
+  - which mirror of Apache download site will be used to download SkyWalking
+  - default: `https://mirrors.cloud.tencent.com/apache/`
+- `skyWalkingDownloadDirectory` : `File`
+  - where SkyWalking will be saved
+  - default: `[RootProject]/tools/skywalking-${skyWalkingVersion}`
 
 
 
 ### Download SkyWalking distribution
 
-If the project doesn't have SkyWalking distribution, the plugin will download it from Apache mirror site, which is defined by `skyWalkingMirror`, automatically. And it will be unzipped to `skyWalkingDirectory`.
+If the project doesn't include SkyWalking distribution, the plugin may download it from Apache mirror site, which is defined by `skyWalkingMirror`, automatically. And it will be unzipped to `skyWalkingDirectory`.
 
 For example, in a multi-project sbt project, the folders may layouted as below.
 
@@ -127,6 +130,14 @@ ROOT/
 
 
 Developer are freely to add / delete / modify the content if the SkyWalking folder, eg, remove unnecessary plugins. In fact, only `agent` folder in SkyWalking folder will be used in this plugin. Developer may delete all anything else.
+
+
+
+### Not download SkyWalking distribution
+
+If developer disabled download feature by using `skyWalkingDownload`, this plugin will try to download agent jar from maven central repository. But all plugins and activations muse be explicitly declared by using `skyWalkingPlugins` and `skyWalkingActivations`. 
+
+By disable the download feature, no JARs are necessary to be pushed to scm.
 
 
 
@@ -272,6 +283,8 @@ lazy val myAgent = (project in file("./agent"))
 
 Here are some examples.
 
+
+
 ### Multi-project with SkyWalking agent
 
 ```scala
@@ -295,6 +308,28 @@ lazy val `myApp` = (project in file("./app"))
     ),
     skyWalkingPluginProjects ++= Seq(
       `myAgent`
+    ),
+  )
+```
+
+
+
+### Not download SkyWalking distribution
+
+```scala
+lazy val `myApp` = (project in file("./app"))
+  .enablePlugins(SkyWalkingService)
+  .settings(
+    skyWalkingDownload := false,
+    skyWalkingActivations ++= Seq(
+      "org.apache.skywalking" % "apm-toolkit-logback-1.x-activation" % "6.5.0",
+      "org.apache.skywalking" % "apm-toolkit-opentracing-activation" % "6.5.0",
+      "org.apache.skywalking" % "apm-toolkit-trace-activation" % "6.5.0",
+    ),
+    skyWalkingPlugins ++= Seq(
+      "org.apache.skywalking" % "apm-jedis-2.x-plugin" % "6.5.0",
+      "org.apache.skywalking" % "apm-mysql-8.x-plugin" % "6.5.0",
+      "org.apache.skywalking" % "apm-mysql-commons" % "6.5.0",
     ),
   )
 ```
