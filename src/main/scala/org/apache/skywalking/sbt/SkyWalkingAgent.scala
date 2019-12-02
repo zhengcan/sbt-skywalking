@@ -30,6 +30,8 @@ object SkyWalkingAgent extends AutoPlugin {
       "org.mockito" % "mockito-all" % "1.10.19" % Test,
       "org.powermock" % "powermock-module-junit4" % "1.6.4" % Test,
       "org.powermock" % "powermock-api-mockito" % "1.6.4" % Test,
+      // Support junit in sbt
+      "com.novocode" % "junit-interface" % "0.11" % Test
     ),
     assemblyShadeRules in assembly := Seq(
       ShadeRule.rename("net.bytebuddy.**" -> "org.apache.skywalking.apm.dependencies.@0").inAll
