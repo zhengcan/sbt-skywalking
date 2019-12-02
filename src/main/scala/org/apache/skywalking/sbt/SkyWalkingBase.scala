@@ -11,7 +11,18 @@ object SkyWalkingDefaults {
 //  val MIRROR = "https://repo1.maven.org/maven2/org/apache/skywalking/apache-skywalking-apm/6.5.0/"
 }
 
-abstract class SkyWalkingKeys {
+object SkyWalkingKeys {
   val skyWalkingVersion = settingKey[String](s"The version of SkyWalking agent. (default ${SkyWalkingDefaults.VERSION})")
 }
+
+object SkyWalkingBase extends AutoPlugin {
+  val autoImport: SkyWalkingKeys.type = SkyWalkingKeys
+
+  import SkyWalkingKeys._
+
+  override def projectSettings: Seq[Def.Setting[_]] = Seq(
+    skyWalkingVersion := SkyWalkingDefaults.VERSION,
+  )
+}
+
 

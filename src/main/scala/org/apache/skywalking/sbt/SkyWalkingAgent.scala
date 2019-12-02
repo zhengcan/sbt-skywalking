@@ -6,23 +6,21 @@ import sbtassembly.AssemblyKeys._
 import sbtassembly.AssemblyPlugin
 import sbtassembly.AssemblyPlugin.autoImport.{MergeStrategy, ShadeRule, assemblyMergeStrategy, assemblyShadeRules}
 
-object SkyWalkingAgentKeys extends SkyWalkingKeys {
+object SkyWalkingAgentKeys {
 }
 
 object SkyWalkingAgent extends AutoPlugin {
-  override def requires: Plugins = AssemblyPlugin
+  override def requires: Plugins = SkyWalkingBase && AssemblyPlugin
 
   val autoImport: SkyWalkingAgentKeys.type = SkyWalkingAgentKeys
 
-  import SkyWalkingAgentKeys._
+  import SkyWalkingKeys._
 
   override def projectSettings: Seq[Def.Setting[_]] = Seq(
     autoScalaLibrary := false,
     crossPaths := false,
     sources in(Compile, doc) := Seq.empty,
     publishArtifact in(Compile, packageDoc) := false,
-
-    skyWalkingVersion := SkyWalkingDefaults.VERSION,
 
     libraryDependencies ++= Seq(
       "org.apache.skywalking" % "apm-agent-core" % skyWalkingVersion.value % Provided,

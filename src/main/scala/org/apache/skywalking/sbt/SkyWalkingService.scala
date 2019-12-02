@@ -12,7 +12,7 @@ import sbtassembly.AssemblyKeys._
 
 case class ResolvedPlugin(plugin: ModuleID, artifact: File)
 
-object SkyWalkingServiceKeys extends SkyWalkingKeys {
+object SkyWalkingServiceKeys {
   val skyWalkingEnableDefaultActivations = settingKey[Boolean]("Enable default activations. (default: true)")
   val skyWalkingEnableDefaultPlugins = settingKey[Boolean]("Enable default plugins. (default: true)")
   val skyWalkingEnableOptionalPlugins = settingKey[Boolean]("Enable optional plugins. (default: false)")
@@ -33,18 +33,19 @@ object SkyWalkingServiceKeys extends SkyWalkingKeys {
 }
 
 object SkyWalkingService extends AutoPlugin {
-  override def requires: Plugins = JavaAgent && UniversalPlugin
+  override def requires: Plugins = SkyWalkingBase && JavaAgent && UniversalPlugin
 
   val autoImport: SkyWalkingServiceKeys.type = SkyWalkingServiceKeys
 
   val skyWalkingModule = settingKey[ModuleID]("The skyWalking module")
 
+  import SkyWalkingKeys._
   import SkyWalkingServiceKeys._
 
   private val DEFAULT_DIRECTORY_TAG = "$DEFAULT"
 
   override def projectSettings: Seq[Def.Setting[_]] = Seq(
-    skyWalkingVersion := SkyWalkingDefaults.VERSION,
+    //    skyWalkingVersion := SkyWalkingDefaults.VERSION,
     skyWalkingModule := SkyWalkingDefaults.GROUP_ID % SkyWalkingDefaults.ARTIFACT_ID % skyWalkingVersion.value,
 
     // Basic settings
@@ -206,17 +207,17 @@ object SkyWalkingService extends AutoPlugin {
           .filter(file => file.isFile)
           .map(file => Tuple2(file, s"$target/config/${file.name}")) ++
           // default activations
-          agentJarFiles(source, "activations", s"$target/activations", skyWalkingEnableDefaultActivations.value) ++
+          agentJarFiles(source, "activations", s"$target/activations", skyWalkingDownload.value && skyWalkingEnableDefaultActivations.value) ++
           // extra activations
           resolveActivations.value
             .filter(plugin => plugin != null)
             .map(plugin => Tuple2(plugin.artifact, s"$target/activations/${plugin.artifact.name}")) ++
           // default plugins
-          agentJarFiles(source, "plugins", s"$target/plugins", skyWalkingEnableDefaultPlugins.value) ++
+          agentJarFiles(source, "plugins", s"$target/plugins", skyWalkingDownload.value && skyWalkingEnableDefaultPlugins.value) ++
           // optional plugins
-          agentJarFiles(source, "optional-plugins", s"$target/plugins", skyWalkingEnableOptionalPlugins.value) ++
+          agentJarFiles(source, "optional-plugins", s"$target/plugins", skyWalkingDownload.value && skyWalkingEnableOptionalPlugins.value) ++
           // bootstrap plugins
-          agentJarFiles(source, "bootstrap-plugins", s"$target/plugins", skyWalkingEnableBootstrapPlugins.value) ++
+          agentJarFiles(source, "bootstrap-plugins", s"$target/plugins", skyWalkingDownload.value && skyWalkingEnableBootstrapPlugins.value) ++
           // extra plugins
           (resolvePlugins.value ++ resolvePluginProjects.value)
             .filter(plugin => plugin != null)
@@ -280,7 +281,7 @@ object SkyWalkingService extends AutoPlugin {
   private def agentJarFiles(base: File, source: String, dest: String, enabled: Boolean): Seq[(File, String)] = {
     val dir = base / "agent" / source
     if (enabled && dir.exists() && dir.isDirectory) {
-      dir.listFiles(Helper.jarFileFilter).map(file => Tuple2(file, dest + file.name))
+      dir.listFiles(Helper.jarFileFilter).map(file => Tuple2(file, dest + "/" + file.name))
     } else {
       Seq()
     }

@@ -278,8 +278,7 @@ lazy val myAgent = (project in file("./agent"))
 ## Examples
 
 Here are some examples.
-
-
+Developer may check `examples` folder for complex demo.
 
 ### Multi-project with SkyWalking agent
 
@@ -304,7 +303,7 @@ lazy val `myApp` = (project in file("./app"))
     ),
     skyWalkingPluginProjects ++= Seq(
       `myAgent`
-    ),
+    )
   )
 ```
 
@@ -320,13 +319,13 @@ lazy val `myApp` = (project in file("./app"))
     skyWalkingActivations ++= Seq(
       "org.apache.skywalking" % "apm-toolkit-logback-1.x-activation" % "6.5.0",
       "org.apache.skywalking" % "apm-toolkit-opentracing-activation" % "6.5.0",
-      "org.apache.skywalking" % "apm-toolkit-trace-activation" % "6.5.0",
+      "org.apache.skywalking" % "apm-toolkit-trace-activation" % "6.5.0"
     ),
     skyWalkingPlugins ++= Seq(
       "org.apache.skywalking" % "apm-jedis-2.x-plugin" % "6.5.0",
       "org.apache.skywalking" % "apm-mysql-8.x-plugin" % "6.5.0",
-      "org.apache.skywalking" % "apm-mysql-commons" % "6.5.0",
-    ),
+      "org.apache.skywalking" % "apm-mysql-commons" % "6.5.0"
+    )
   )
 ```
 
