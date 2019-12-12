@@ -41,7 +41,8 @@ object SkyWalkingAgent extends AutoPlugin {
       case x =>
         val oldStrategy = (assemblyMergeStrategy in assembly).value
         oldStrategy(x)
-    }
+    },
+    test in assembly := {}
   )
 }
 
