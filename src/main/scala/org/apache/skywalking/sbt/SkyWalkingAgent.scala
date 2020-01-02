@@ -2,9 +2,8 @@ package org.apache.skywalking.sbt
 
 import sbt.Keys._
 import sbt.{Compile, _}
-import sbtassembly.AssemblyKeys._
 import sbtassembly.AssemblyPlugin
-import sbtassembly.AssemblyPlugin.autoImport.{MergeStrategy, ShadeRule, assemblyMergeStrategy, assemblyShadeRules}
+import sbtassembly.AssemblyPlugin.autoImport._
 
 object SkyWalkingAgentKeys {
 }
@@ -21,6 +20,7 @@ object SkyWalkingAgent extends AutoPlugin {
     crossPaths := false,
     sources in(Compile, doc) := Seq.empty,
     publishArtifact in(Compile, packageDoc) := false,
+    packageBin in Compile := (assembly in Compile).value,
 
     libraryDependencies ++= Seq(
       "org.apache.skywalking" % "apm-agent-core" % skyWalkingVersion.value % Provided,

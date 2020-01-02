@@ -41,7 +41,7 @@ Add this plugin as sbt dependency to your `project/plugins.sbt`:
 
 ```scala
 # Currently this plugin is hosted in bintray 
-resolvers += Resolver.bintrayIvyRepo("can", "sbt-plugins")
+resolvers += Resolver.bintrayIvyRepo("can2020", "sbt-plugins")
 
 addSbtPlugin("org.apache.skywalking" % "sbt-skywalking" % versionNumber)
 ```
@@ -67,7 +67,7 @@ This plugin add the following settings to project:
 
 - `skyWalkingVersion` : `String`
   - which SkyWalking will be used
-  - default: `6.5.0`
+  - default: `6.6.0`
 - `skyWalkingEnableDefaultActivations` : `Boolean`
   - whether copy `activations/*.jar` from distribution to `agent/activations` folder
   - default: `true`
@@ -117,7 +117,7 @@ ROOT/
   +-- app/
     +-- src/
   +-- tools/
-    +-- skywalking-6.5.0/       <== SkyWalking will be unzipped here
+    +-- skywalking-6.6.0/       <== SkyWalking will be unzipped here
       +-- agent/
       +-- bin/
       +-- ...
@@ -215,7 +215,7 @@ lazy val myAgent = (project in file("./agent"))
 This plugin add the following settings to project:
 - `skyWalkingVersion` : `String`
   - which SkyWalking will be used
-  - default: `6.5.0`
+  - default: `6.6.0`
 
 
 
@@ -299,7 +299,7 @@ lazy val `myApp` = (project in file("./app"))
   .enablePlugins(SkyWalkingService)
   .settings(
     skyWalkingPlugins ++= Seq(
-      "org.apache.skywalking" % "apm-zookeeper-3.4.x-plugin" % "6.5.0"
+      "org.apache.skywalking" % "apm-zookeeper-3.4.x-plugin" % "6.6.0"
     ),
     skyWalkingPluginProjects ++= Seq(
       `myAgent`
@@ -317,14 +317,14 @@ lazy val `myApp` = (project in file("./app"))
   .settings(
     skyWalkingDownload := false,
     skyWalkingActivations ++= Seq(
-      "org.apache.skywalking" % "apm-toolkit-logback-1.x-activation" % "6.5.0",
-      "org.apache.skywalking" % "apm-toolkit-opentracing-activation" % "6.5.0",
-      "org.apache.skywalking" % "apm-toolkit-trace-activation" % "6.5.0"
+      "org.apache.skywalking" % "apm-toolkit-logback-1.x-activation" % "6.6.0",
+      "org.apache.skywalking" % "apm-toolkit-opentracing-activation" % "6.6.0",
+      "org.apache.skywalking" % "apm-toolkit-trace-activation" % "6.6.0"
     ),
     skyWalkingPlugins ++= Seq(
-      "org.apache.skywalking" % "apm-jedis-2.x-plugin" % "6.5.0",
-      "org.apache.skywalking" % "apm-mysql-8.x-plugin" % "6.5.0",
-      "org.apache.skywalking" % "apm-mysql-commons" % "6.5.0"
+      "org.apache.skywalking" % "apm-jedis-2.x-plugin" % "6.6.0",
+      "org.apache.skywalking" % "apm-mysql-8.x-plugin" % "6.6.0",
+      "org.apache.skywalking" % "apm-mysql-commons" % "6.6.0"
     )
   )
 ```
