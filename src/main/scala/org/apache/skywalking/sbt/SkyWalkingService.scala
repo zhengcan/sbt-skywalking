@@ -157,7 +157,7 @@ object SkyWalkingService extends AutoPlugin {
   }
 
   private def hasAgentJar: Def.Initialize[Task[Boolean]] = Def.task {
-    val agentJar = resolveDownloadDirectory.value / "agent/skywalking-agent.jar"
+    val agentJar = resolveDownloadDirectory.value / "skywalking-agent.jar"
     shouldDownload.value || (agentJar.exists() && agentJar.isFile)
   }
 
@@ -173,7 +173,7 @@ object SkyWalkingService extends AutoPlugin {
         Seq.empty
       }
     } else {
-      val agentJar = resolveDownloadDirectory.value / "agent/skywalking-agent.jar"
+      val agentJar = resolveDownloadDirectory.value / "skywalking-agent.jar"
       val agentModule = skyWalkingModule.value
       if (agentJar.exists() && agentJar.isFile) {
         Def.task {
@@ -279,7 +279,7 @@ object SkyWalkingService extends AutoPlugin {
     }
 
   private def agentJarFiles(base: File, source: String, dest: String, enabled: Boolean): Seq[(File, String)] = {
-    val dir = base / "agent" / source
+    val dir = base / source
     if (enabled && dir.exists() && dir.isDirectory) {
       dir.listFiles(Helper.jarFileFilter).map(file => Tuple2(file, dest + "/" + file.name))
     } else {
