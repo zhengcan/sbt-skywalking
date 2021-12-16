@@ -22,9 +22,9 @@ object Downloader {
     try {
       if (!dest.exists() || dest.length() == 0) {
         val m = if (mirror.endsWith("/")) mirror.substring(0, mirror.length - 1) else mirror
-        val link = s"$m/$version/apache-skywalking-apm-$version.tar.gz"
+        val link = s"$m/$version/apache-skywalking-java-agent-$version.tgz"
         println(s"Download and unzip SkyWalking from $link to $dest...")
-        if (link.endsWith(".tar.gz")) {
+        if (link.endsWith(".tar.gz") || link.endsWith(".tgz")) {
           untarURL(new URL(link), dest)
         } else if (link.endsWith(".zip")) {
           unzipURL(new URL(link), dest)
