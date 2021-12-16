@@ -21,7 +21,7 @@ object Downloader {
     lock.lock()
     try {
       if (!dest.exists() || dest.length() == 0) {
-        val link = s"$mirror/$version/apache-skywalking-apm-$version.tar.gz"
+        val link = s"$mirror/$version/apache-skywalking-apm-$version.tar.gz".replaceAll("//", "/")
         println(s"Download and unzip SkyWalking from $link to $dest...")
         if (link.endsWith(".tar.gz")) {
           untarURL(new URL(link), dest)
