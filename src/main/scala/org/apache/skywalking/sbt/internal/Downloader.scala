@@ -21,7 +21,8 @@ object Downloader {
     lock.lock()
     try {
       if (!dest.exists() || dest.length() == 0) {
-        val link = s"$mirror/$version/apache-skywalking-apm-$version.tar.gz".replaceAllLiterally("//", "/")
+        val m = if (mirror.endsWith("/")) mirror.substring(0, mirror.length - 1) else mirror
+        val link = s"$m/$version/apache-skywalking-apm-$version.tar.gz"
         println(s"Download and unzip SkyWalking from $link to $dest...")
         if (link.endsWith(".tar.gz")) {
           untarURL(new URL(link), dest)
@@ -76,11 +77,11 @@ object Downloader {
   }
 
   private def extractWithoutTopDirectory(
-                          from: ArchiveInputStream,
-                          toDirectory: File,
-                          filter: NameFilter,
-                          preserveLastModified: Boolean
-                        ): Set[File] = {
+                                          from: ArchiveInputStream,
+                                          toDirectory: File,
+                                          filter: NameFilter,
+                                          preserveLastModified: Boolean
+                                        ): Set[File] = {
     val set = new mutable.HashSet[File]
 
     @tailrec def next(): Unit = {
@@ -112,7 +113,7 @@ object Downloader {
         } else {
           //log.debug("Ignoring zip entry '" + name + "'")
         }
-//        from.closeEntry()
+        //        from.closeEntry()
         next()
       }
     }
