@@ -1,14 +1,16 @@
 package org.apache.skywalking.sbt.internal
 
+import org.apache.commons.compress.archivers.ArchiveInputStream
+import org.apache.commons.compress.archivers.tar.TarArchiveInputStream
+import org.apache.commons.compress.archivers.zip.ZipArchiveInputStream
+import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream
+import sbt.io.IO.{createDirectory, setModifiedTimeOrFalse, transfer}
+import sbt.io.Using.{fileOutputStream, urlInputStream}
+import sbt.io.{AllPassFilter, NameFilter}
+
 import java.io.{File, IOException, InputStream}
 import java.net.URL
 import java.util.concurrent.locks.ReentrantLock
-import java.util.zip.ZipInputStream
-
-import sbt.io.IO.{createDirectory, setModifiedTimeOrFalse, transfer}
-import sbt.io.{AllPassFilter, NameFilter}
-import sbt.io.Using.{fileOutputStream, urlInputStream, zipInputStream}
-
 import scala.annotation.tailrec
 import scala.collection.mutable
 
@@ -19,13 +21,39 @@ object Downloader {
     lock.lock()
     try {
       if (!dest.exists() || dest.length() == 0) {
-        val link = s"$mirror/skywalking/$version/apache-skywalking-apm-$version.zip"
+        val link = s"$mirror/$version/apache-skywalking-apm-$version.tar.gz"
         println(s"Download and unzip SkyWalking from $link to $dest...")
-        unzipURL(new URL(link), dest)
+        if (link.endsWith(".tar.gz")) {
+          untarURL(new URL(link), dest)
+        } else if (link.endsWith(".zip")) {
+          unzipURL(new URL(link), dest)
+        } else {
+          println(s"Unknown file format")
+        }
       }
     } finally {
       lock.unlock()
     }
+  }
+
+  private def untarURL(
+                        from: URL,
+                        toDirectory: File,
+                        filter: NameFilter = AllPassFilter,
+                        preserveLastModified: Boolean = true
+                      ): Set[File] =
+    urlInputStream(from)(in => untarStream(in, toDirectory, filter, preserveLastModified))
+
+  private def untarStream(
+                           from: InputStream,
+                           toDirectory: File,
+                           filter: NameFilter = AllPassFilter,
+                           preserveLastModified: Boolean = true
+                         ): Set[File] = {
+    createDirectory(toDirectory)
+    val gzipInput = new GzipCompressorInputStream(from);
+    val tarInput = new TarArchiveInputStream(gzipInput);
+    extractWithoutTopDirectory(tarInput, toDirectory, filter, preserveLastModified)
   }
 
   private def unzipURL(
@@ -43,15 +71,16 @@ object Downloader {
                            preserveLastModified: Boolean = true
                          ): Set[File] = {
     createDirectory(toDirectory)
-    zipInputStream(from)(zipInput => extractWithoutTopDirectory(zipInput, toDirectory, filter, preserveLastModified))
+    val zipInput = new ZipArchiveInputStream(from)
+    extractWithoutTopDirectory(zipInput, toDirectory, filter, preserveLastModified)
   }
 
   private def extractWithoutTopDirectory(
-                                          from: ZipInputStream,
-                                          toDirectory: File,
-                                          filter: NameFilter,
-                                          preserveLastModified: Boolean
-                                        ): Set[File] = {
+                          from: ArchiveInputStream,
+                          toDirectory: File,
+                          filter: NameFilter,
+                          preserveLastModified: Boolean
+                        ): Set[File] = {
     val set = new mutable.HashSet[File]
 
     @tailrec def next(): Unit = {
@@ -79,11 +108,11 @@ object Downloader {
             }
           }
           if (preserveLastModified)
-            setModifiedTimeOrFalse(target, entry.getTime)
+            setModifiedTimeOrFalse(target, entry.getLastModifiedDate.getTime)
         } else {
           //log.debug("Ignoring zip entry '" + name + "'")
         }
-        from.closeEntry()
+//        from.closeEntry()
         next()
       }
     }
