@@ -4,6 +4,7 @@ lazy val `skywalking-plugin` = (project in file("."))
     organization := "org.apache.skywalking",
     name := "sbt-skywalking",
     sbtPlugin := true,
+    crossSbtVersions := Seq("1.2.8"),
     licenses += ("MIT", url("https://opensource.org/licenses/MIT")),
     addSbtPlugin("com.github.sbt" % "sbt-native-packager" % "1.9.7"),
     addSbtPlugin("com.lightbend.sbt" % "sbt-javaagent" % "0.1.6"),
