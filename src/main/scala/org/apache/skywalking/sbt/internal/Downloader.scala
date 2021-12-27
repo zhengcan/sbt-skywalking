@@ -17,17 +17,15 @@ import scala.collection.mutable
 object Downloader {
   val lock = new ReentrantLock()
 
-  def download(mirror: String, version: String, dest: File): Unit = {
+  def download(url: String, dest: File): Unit = {
     lock.lock()
     try {
       if (!dest.exists() || dest.length() == 0) {
-        val m = if (mirror.endsWith("/")) mirror.substring(0, mirror.length - 1) else mirror
-        val link = s"$m/$version/apache-skywalking-java-agent-$version.tgz"
-        println(s"Download and unzip SkyWalking from $link to $dest...")
-        if (link.endsWith(".tar.gz") || link.endsWith(".tgz")) {
-          untarURL(new URL(link), dest)
-        } else if (link.endsWith(".zip")) {
-          unzipURL(new URL(link), dest)
+        println(s"Download and unzip SkyWalking from $url to $dest...")
+        if (url.endsWith(".tar.gz") || url.endsWith(".tgz")) {
+          untarURL(new URL(url), dest)
+        } else if (url.endsWith(".zip")) {
+          unzipURL(new URL(url), dest)
         } else {
           println(s"Unknown file format")
         }

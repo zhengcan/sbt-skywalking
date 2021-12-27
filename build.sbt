@@ -1,7 +1,7 @@
 lazy val `skywalking-plugin` = (project in file("."))
   .enablePlugins(SbtPlugin)
   .settings(
-    organization := "org.apache.skywalking",
+    organization := "io.github.zhengcan",
     name := "sbt-skywalking",
     sbtPlugin := true,
     crossSbtVersions := Seq("1.2.8"),

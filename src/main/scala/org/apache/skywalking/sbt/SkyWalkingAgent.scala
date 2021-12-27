@@ -28,8 +28,8 @@ object SkyWalkingAgent extends AutoPlugin {
       "org.apache.skywalking" % "apm-test-tools" % skyWalkingVersion.value % Test,
       "junit" % "junit" % "4.12" % Test,
       "org.mockito" % "mockito-all" % "1.10.19" % Test,
-      "org.powermock" % "powermock-module-junit4" % "1.6.4" % Test,
-      "org.powermock" % "powermock-api-mockito" % "1.6.4" % Test,
+      "org.powermock" % "powermock-module-junit4" % "2.0.9" % Test,
+      "org.powermock" % "powermock-api-mockito2" % "2.0.9" % Test,
       // Support junit in sbt
       "com.novocode" % "junit-interface" % "0.11" % Test
     ),
