@@ -33,6 +33,7 @@ object SkyWalkingAgent extends AutoPlugin {
       // Support junit in sbt
       "com.novocode" % "junit-interface" % "0.11" % Test
     ),
+    assembly / assemblyJarName := s"${name.value}-${version.value}.jar",
     assemblyShadeRules in assembly := Seq(
       ShadeRule.rename("net.bytebuddy.**" -> "org.apache.skywalking.apm.dependencies.@0").inAll
     ),
