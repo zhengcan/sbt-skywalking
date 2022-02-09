@@ -28,7 +28,7 @@ object SkyWalkingServiceKeys {
   val skyWalkingResolvedPlugins = taskKey[Seq[ResolvedPlugin]]("The resolved custom skyWalking plugins")
   val skyWalkingResolvedPluginProjects = taskKey[Seq[ResolvedPlugin]]("The resolved custom skyWalking plugin projects")
 
-  val skyWalkingDownload = settingKey[Boolean]("Whether download SkyWalking distribution. (default: true)")
+  val skyWalkingDownload = settingKey[Boolean]("Whether download SkyWalking distribution. (default: false)")
   val skyWalkingDownloadDirectory = settingKey[File](s"The directory of SkyWalking.")
   val skyWalkingDownloadMirror = settingKey[String](s"The mirror of apache download site. (default ${SkyWalkingDefaults.MIRROR})")
   val skyWalkingDownloadUrl = settingKey[String](s"The remote url of SkyWalking agent. (default: ${SkyWalkingDefaults.MIRROR}/${SkyWalkingDefaults.VERSION}/apache-skywalking-java-agent-${SkyWalkingDefaults.VERSION}.tgz)")
@@ -44,6 +44,7 @@ object SkyWalkingService extends AutoPlugin {
 
   import SkyWalkingKeys._
   import SkyWalkingServiceKeys._
+  import com.typesafe.sbt.packager.{ Keys => PackagerKeys }
 
   private val DEFAULT_DIRECTORY_TAG = "$DEFAULT"
 
@@ -69,7 +70,7 @@ object SkyWalkingService extends AutoPlugin {
     skyWalkingResolvedPluginProjects := resolvePluginProjects.value,
 
     // Download related
-    skyWalkingDownload := true,
+    skyWalkingDownload := false,
     skyWalkingDownloadDirectory := new File(DEFAULT_DIRECTORY_TAG),
     skyWalkingDownloadMirror := SkyWalkingDefaults.MIRROR,
     skyWalkingDownloadUrl := "",
@@ -86,6 +87,17 @@ object SkyWalkingService extends AutoPlugin {
     }.value,
     resolvedJavaAgents ++= resolveJavaAgents.value,
     mappings in Universal ++= mappingJavaAgents.value,
+
+    // Disable agent if no agent.config
+    // PackagerKeys.bashScriptExtraDefines := PackagerKeys.bashScriptExtraDefines.value map (define =>
+    //   if (define.contains("skywalking-agent")) {
+    //     println("[[ -e \"${app_home}/../skywalking-agent/agent.config\" ]] && " + define)
+    //     "[[ -e \"${app_home}/../skywalking-agent/agent.config\" ]] && " + define
+    //   } else {
+    //     println(define)
+    //     define
+    //   }
+    // ),
 
     // Common tasks
     compile in Compile := (compile in Compile dependsOn ensureCompile).value,
