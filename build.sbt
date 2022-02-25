@@ -13,7 +13,7 @@ lazy val `skywalking-plugin` = (project in file("."))
     addSbtPlugin("com.eed3si9n" % "sbt-assembly" % "1.1.0"),
     libraryDependencies ++= Seq(
       "org.apache.commons" % "commons-compress" % "1.21",
-      "org.apache.logging.log4j" % "log4j-core" % "2.16.0" % Test
+      "org.apache.logging.log4j" % "log4j-core" % "2.17.1" % Test
     )
   )
 
