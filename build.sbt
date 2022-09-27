@@ -4,6 +4,7 @@ lazy val `skywalking-plugin` = (project in file("."))
     organization := "io.github.zhengcan",
     name := "sbt-skywalking",
     sbtPlugin := true,
+    scalaVersion := "2.12.15",
     crossSbtVersions := Seq("1.2.8", "1.3.13"),
     // javacOptions ++= Seq("-encoding", "UTF-8", "-source", "8", "-target", "8"),
     // scalacOptions ++= Seq("-encoding", "UTF-8", "-release", "8"),
