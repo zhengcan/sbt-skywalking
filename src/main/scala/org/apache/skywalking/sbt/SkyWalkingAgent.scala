@@ -24,9 +24,9 @@ object SkyWalkingAgent extends AutoPlugin {
 
     libraryDependencies ++= Seq(
       "org.apache.skywalking" % "apm-agent-core" % skyWalkingVersion.value % Provided,
-      "org.apache.skywalking" % "apm-util" % skyWalkingVersion.value % Provided,
+//      "org.apache.skywalking" % "apm-util" % skyWalkingVersion.value % Provided,
       "org.apache.skywalking" % "apm-test-tools" % skyWalkingVersion.value % Test,
-      "junit" % "junit" % "4.12" % Test,
+      "junit" % "junit" % "4.13.2" % Test,
       "org.mockito" % "mockito-all" % "1.10.19" % Test,
       "org.powermock" % "powermock-module-junit4" % "2.0.9" % Test,
       "org.powermock" % "powermock-api-mockito2" % "2.0.9" % Test,
