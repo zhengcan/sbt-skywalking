@@ -18,9 +18,9 @@ object SkyWalkingAgent extends AutoPlugin {
   override def projectSettings: Seq[Def.Setting[_]] = Seq(
     autoScalaLibrary := false,
     crossPaths := false,
-    sources in(Compile, doc) := Seq.empty,
-    publishArtifact in(Compile, packageDoc) := false,
-    packageBin in Compile := (assembly in Compile).value,
+    Compile / doc / sources := Seq.empty,
+    Compile / packageDoc / publishArtifact := false,
+    Compile / packageBin := (Compile / assembly).value,
 
     libraryDependencies ++= Seq(
       "org.apache.skywalking" % "apm-agent-core" % skyWalkingVersion.value % Provided,
@@ -34,16 +34,16 @@ object SkyWalkingAgent extends AutoPlugin {
       "com.novocode" % "junit-interface" % "0.11" % Test
     ),
     assembly / assemblyJarName := s"${name.value}-${version.value}.jar",
-    assemblyShadeRules in assembly := Seq(
+    assembly / assemblyShadeRules := Seq(
       ShadeRule.rename("net.bytebuddy.**" -> "org.apache.skywalking.apm.dependencies.@0").inAll
     ),
-    assemblyMergeStrategy in assembly := {
+    assembly / assemblyMergeStrategy := {
       case "module-info.class" => MergeStrategy.discard
       case x =>
-        val oldStrategy = (assemblyMergeStrategy in assembly).value
+        val oldStrategy = (assembly / assemblyMergeStrategy).value
         oldStrategy(x)
     },
-    test in assembly := {}
+    assembly / test := {}
   )
 }
 

@@ -86,7 +86,7 @@ object SkyWalkingService extends AutoPlugin {
       else Seq(skyWalkingModule.value % Provided)
     }.value,
     resolvedJavaAgents ++= resolveJavaAgents.value,
-    mappings in Universal ++= mappingJavaAgents.value,
+    Universal / mappings ++= mappingJavaAgents.value,
 
     // Disable agent if no agent.config
     // PackagerKeys.bashScriptExtraDefines := PackagerKeys.bashScriptExtraDefines.value map (define =>
@@ -100,8 +100,8 @@ object SkyWalkingService extends AutoPlugin {
     // ),
 
     // Common tasks
-    compile in Compile := (compile in Compile dependsOn ensureCompile).value,
-    test in Test := (test in Test dependsOn ensureTest).value,
+    Compile / compile := ((Compile / compile) dependsOn ensureCompile).value,
+    Test / test := ((Test / test) dependsOn ensureTest).value,
     clean := (clean dependsOn ensureClean).value,
   ) ++ inConfig(Universal)(Seq(
     // Universal tasks
@@ -116,12 +116,12 @@ object SkyWalkingService extends AutoPlugin {
     skyWalkingActivationProjects.value foreach { ref =>
       structure.allProjectRefs
         .find(p => p.project == ref.asInstanceOf[LocalProject].project)
-        .foreach(p => all = all dependsOn (compile in p in Compile))
+        .foreach(p => all = all dependsOn (p / Compile / compile))
     }
     skyWalkingPluginProjects.value foreach { ref =>
       structure.allProjectRefs
         .find(p => p.project == ref.asInstanceOf[LocalProject].project)
-        .foreach(p => all = all dependsOn (compile in p in Compile))
+        .foreach(p => all = all dependsOn (p / Compile / compile))
     }
     all
   }
@@ -132,12 +132,12 @@ object SkyWalkingService extends AutoPlugin {
     skyWalkingActivationProjects.value foreach { ref =>
       structure.allProjectRefs
         .find(p => p.project == ref.asInstanceOf[LocalProject].project)
-        .foreach(p => all = all dependsOn (test in p in Test))
+        .foreach(p => all = all dependsOn (p / Test / test))
     }
     skyWalkingPluginProjects.value foreach { ref =>
       structure.allProjectRefs
         .find(p => p.project == ref.asInstanceOf[LocalProject].project)
-        .foreach(p => all = all dependsOn (test in p in Test))
+        .foreach(p => all = all dependsOn (p / Test / test))
     }
     all
   }
@@ -148,12 +148,12 @@ object SkyWalkingService extends AutoPlugin {
     skyWalkingActivationProjects.value foreach { ref =>
       structure.allProjectRefs
         .find(p => p.project == ref.asInstanceOf[LocalProject].project)
-        .foreach(p => all = all dependsOn (clean in p))
+        .foreach(p => all = all dependsOn (p / clean))
     }
     skyWalkingPluginProjects.value foreach { ref =>
       structure.allProjectRefs
         .find(p => p.project == ref.asInstanceOf[LocalProject].project)
-        .foreach(p => all = all dependsOn (clean in p))
+        .foreach(p => all = all dependsOn (p / clean))
     }
     all
   }
@@ -175,12 +175,12 @@ object SkyWalkingService extends AutoPlugin {
     skyWalkingActivationProjects.value foreach { ref =>
       structure.allProjectRefs
         .find(p => p.project == ref.asInstanceOf[LocalProject].project)
-        .foreach(p => all = all dependsOn (assembly in p))
+        .foreach(p => all = all dependsOn (p / assembly))
     }
     skyWalkingPluginProjects.value foreach { ref =>
       structure.allProjectRefs
         .find(p => p.project == ref.asInstanceOf[LocalProject].project)
-        .foreach(p => all = all dependsOn (assembly in p))
+        .foreach(p => all = all dependsOn (p / assembly))
     }
     all
   }
@@ -222,7 +222,7 @@ object SkyWalkingService extends AutoPlugin {
       } else {
         Def.task {
           Seq(
-            ((update in Provided).value.matching(Modules.exactFilter(agentModule)).headOption map {
+            ((Provided / update).value.matching(Modules.exactFilter(agentModule)).headOption map {
               jar => ResolvedAgent(JavaAgent(agentModule, SkyWalkingDefaults.AGENT_NAME), jar)
             }).get
           )
@@ -267,7 +267,7 @@ object SkyWalkingService extends AutoPlugin {
 
   def resolveActivations: Def.Initialize[Task[Seq[ResolvedPlugin]]] = Def.task[Seq[ResolvedPlugin]] {
     skyWalkingActivations.value flatMap { plugin =>
-      (update in Provided).value.matching(Modules.exactFilter(plugin)).headOption map {
+      (Provided / update).value.matching(Modules.exactFilter(plugin)).headOption map {
         jar => ResolvedPlugin(plugin, jar)
       }
     }
@@ -296,7 +296,7 @@ object SkyWalkingService extends AutoPlugin {
 
   def resolvePlugins: Def.Initialize[Task[Seq[ResolvedPlugin]]] = Def.task[Seq[ResolvedPlugin]] {
     skyWalkingPlugins.value flatMap { plugin =>
-      (update in Provided).value.matching(Modules.exactFilter(plugin)).headOption map {
+      (Provided / update).value.matching(Modules.exactFilter(plugin)).headOption map {
         jar => ResolvedPlugin(plugin, jar)
       }
     }
@@ -326,8 +326,8 @@ object SkyWalkingService extends AutoPlugin {
   private def extractPlugins(stateTask: Task[State], ref: ProjectRef): Task[Seq[ResolvedPlugin]] =
     stateTask.flatMap { state =>
       val extracted: Extracted = Project.extract(state)
-      val module: ModuleID = extracted.get(projectID in ref)
-      val assemblyOutputPathTask = extracted.getOpt(assemblyOutputPath in ref in assembly).orNull
+      val module: ModuleID = extracted.get(ref / projectID)
+      val assemblyOutputPathTask = extracted.getOpt(ref / assembly / assemblyOutputPath).orNull
       for {
         assemblyOutputPath <- assemblyOutputPathTask
       } yield {
