@@ -1,4 +1,4 @@
-lazy val `skywalking-plugin` = (project in file("."))
+lazy val `sbt-skywalking` = (project in file("."))
   .enablePlugins(SbtPlugin)
   .settings(
     organization := "io.github.zhengcan",
